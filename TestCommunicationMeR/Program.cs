@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using ActiveUp.Net.Mail;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,6 +14,8 @@ namespace TestCommunicationMeR
     {
         static void Main(string[] args)
         {
+            Connection();
+            //GetJson();
         }
 
         static void GetJson()
@@ -52,5 +55,16 @@ namespace TestCommunicationMeR
             public string Message { get; set; }
         }
 
+        static void Connection ()
+        {
+            using (Imap4Client imap = new Imap4Client())
+            {
+                imap.Connect("mail.moj-eracun.hr");
+                imap.Login("dostava@moj-eracun.hr", "m0j.d05tava");
+                Mailbox inbox = imap.SelectMailbox("Inbox");
+                string body = inbox.Fetch.BodyStructure(90000);
+                imap.Disconnect();
+            }
+        }
     }
 }
