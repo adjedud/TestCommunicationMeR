@@ -7,7 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ConsoleApplication1
+namespace TestCommunicationMeR
 {
     class Program
     {
