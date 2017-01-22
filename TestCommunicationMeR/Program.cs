@@ -1,12 +1,16 @@
 ﻿using ActiveUp.Net.Mail;
 using Newtonsoft.Json;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using AngleSharp.Parser.Html;
 
 namespace TestCommunicationMeR
 {
@@ -14,16 +18,61 @@ namespace TestCommunicationMeR
     {
         static void Main(string[] args)
         {
-            Connection();
-            //GetJson();
+            using (Imap4Client imap = new Imap4Client())
+            {
+                string body;
+                int referenceOrdinalNumber = 96600;
+                string referenceDate = DateTime.Now.ToString("dd-MMM-yyy hh:mm:ss" + " +0100", CultureInfo.CreateSpecificCulture("en-US"));
+                string deliveryLink;
+                var htmlParser = new HtmlParser();
+
+                imap.Connect("mail.moj-eracun.hr");
+                imap.Login("dostava@moj-eracun.hr", "m0j.d05tava");
+                Mailbox inbox = imap.SelectMailbox("Inbox");
+
+                int ordinalNumber = inbox.MessageCount;
+                string date = inbox.Fetch.InternalDate(ordinalNumber);
+                string header;
+                string MerPattern1 = ".*?";
+                string MerPattern2 = "((?:http|https)(?::\\/{2}[\\w]+)(?:[\\/|\\.]?)(?:[^\\s\"]*))";
+                Regex MeRLink = new Regex(MerPattern1 + MerPattern2, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+                do
+                {
+                    ordinalNumber = inbox.MessageCount;
+                    date = inbox.Fetch.InternalDate(ordinalNumber);
+
+                    for (ordinalNumber = inbox.MessageCount; date != referenceDate && ordinalNumber > referenceOrdinalNumber; ordinalNumber--)
+                    {
+                        body = inbox.Fetch.MessageString(ordinalNumber);
+                        header = inbox.Fetch.HeaderString(ordinalNumber);
+                        try
+                        {
+                            Match MeRLinkMatch = MeRLink.Match(body);
+                            if (MeRLinkMatch.Success)
+                            {
+                                deliveryLink = MeRLinkMatch.Groups[1].ToString();
+                                GetJson(deliveryLink);
+                            }
+                        }
+                        catch (ArgumentNullException ex)
+                        {
+                            
+                            throw;
+                        }
+
+                    }
+                    referenceOrdinalNumber = ordinalNumber;
+                } while (date != referenceDate);
+                imap.Disconnect();
+            }
         }
 
-        static void GetJson()
+        static void GetJson(string url)
         {
             //string DomainControllerMethod = "https://www.moj-eracun.hr/exchange/getstatus?";
-            string url = "https://www.moj-eracun.hr/exchange/getstatus?id=1041189&ver=cb590fe1-3138-4287-b8fc-058a56065152";
+            //string url = "https://www.moj-eracun.hr/exchange/getstatus?id=1041189&ver=cb590fe1-3138-4287-b8fc-058a56065152";
 
-            //string url2 = DomainControllerMethod + ;
             using (var MeR = new WebClient())
             {
                 var json = MeR.DownloadString(url);
@@ -40,6 +89,7 @@ namespace TestCommunicationMeR
                 Console.ReadLine();
             }
         }
+
         public class JsonResponse
         {
             [JsonProperty]
@@ -53,18 +103,6 @@ namespace TestCommunicationMeR
             public DateTime IssueDate { get; set; }
             public DateTime UpdateDate { get; set; }
             public string Message { get; set; }
-        }
-
-        static void Connection ()
-        {
-            using (Imap4Client imap = new Imap4Client())
-            {
-                imap.Connect("mail.moj-eracun.hr");
-                imap.Login("dostava@moj-eracun.hr", "m0j.d05tava");
-                Mailbox inbox = imap.SelectMailbox("Inbox");
-                string body = inbox.Fetch.BodyStructure(90000);
-                imap.Disconnect();
-            }
-        }
+        }        
     }
 }
