@@ -32,7 +32,6 @@ namespace TestCommunicationMeR
 
                 int ordinalNumber = inbox.MessageCount;
                 string date = inbox.Fetch.InternalDate(ordinalNumber);
-                string header;
                 string MerPattern1 = ".*?";
                 string MerPattern2 = "((?:http|https)(?::\\/{2}[\\w]+)(?:[\\/|\\.]?)(?:[^\\s\"]*))";
                 Regex MeRLink = new Regex(MerPattern1 + MerPattern2, RegexOptions.IgnoreCase | RegexOptions.Singleline);
@@ -45,22 +44,22 @@ namespace TestCommunicationMeR
                     for (ordinalNumber = inbox.MessageCount; date != referenceDate && ordinalNumber > referenceOrdinalNumber; ordinalNumber--)
                     {
                         body = inbox.Fetch.MessageString(ordinalNumber);
-                        header = inbox.Fetch.HeaderString(ordinalNumber);
                         try
                         {
                             Match MeRLinkMatch = MeRLink.Match(body);
+                            //TO DO: Add additional check based on sender
                             if (MeRLinkMatch.Success)
                             {
                                 deliveryLink = MeRLinkMatch.Groups[1].ToString();
                                 GetJson(deliveryLink);
                             }
                         }
-                        catch (ArgumentNullException ex)
+                        //TO DO: Add Exceptions
+                        catch
                         {
                             
                             throw;
                         }
-
                     }
                     referenceOrdinalNumber = ordinalNumber;
                 } while (date != referenceDate);
@@ -70,7 +69,7 @@ namespace TestCommunicationMeR
 
         static void GetJson(string url)
         {
-            //string DomainControllerMethod = "https://www.moj-eracun.hr/exchange/getstatus?";
+            // TO DO: Make try-catch for the entire method
             //string url = "https://www.moj-eracun.hr/exchange/getstatus?id=1041189&ver=cb590fe1-3138-4287-b8fc-058a56065152";
 
             using (var MeR = new WebClient())
@@ -84,6 +83,7 @@ namespace TestCommunicationMeR
                     JsonSerializer serializer = new JsonSerializer();
                     serializer.Serialize(ResultFile, json);
                 }
+                int DocumentId = Result.Id;
                 int DocumentStatus = Result.Status;
                 Console.WriteLine(DocumentStatus);
                 Console.ReadLine();
