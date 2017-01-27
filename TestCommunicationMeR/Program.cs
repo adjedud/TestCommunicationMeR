@@ -1,13 +1,8 @@
 ﻿using ActiveUp.Net.Mail;
 using Newtonsoft.Json;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using AngleSharp.Parser.Html;
@@ -34,9 +29,18 @@ namespace TestCommunicationMeR
                 string date = inbox.Fetch.InternalDate(ordinalNumber);
                 string MerPattern1 = ".*?";
                 string MerPattern2 = "((?:http|https)(?::\\/{2}[\\w]+)(?:[\\/|\\.]?)(?:[^\\s\"]*))";
-                Regex MeRLink = new Regex(MerPattern1 + MerPattern2, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                Regex MerLink = new Regex(MerPattern1 + MerPattern2, RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-                do
+                string MerCheck1 = "(Return)";
+                string MerCheck2 = "(-)";
+                string MerCheck3 = "(Path)";
+                string MerCheck4 = "(:)";
+                string MerCheck5 = "( )";
+                string MerCheck6 = "(dostava@moj-eracun\\.hr)";
+                Regex MerChecker = new Regex(MerCheck1 + MerCheck2 + MerCheck3 + MerCheck4 + MerCheck5 + MerCheck6, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+
+                while (date != referenceDate)
                 {
                     ordinalNumber = inbox.MessageCount;
                     date = inbox.Fetch.InternalDate(ordinalNumber);
@@ -46,11 +50,12 @@ namespace TestCommunicationMeR
                         body = inbox.Fetch.MessageString(ordinalNumber);
                         try
                         {
-                            Match MeRLinkMatch = MeRLink.Match(body);
+                            Match MerLinkMatch = MerLink.Match(body);
+                            Match MerCheckerMatch = MerChecker.Match(body);
                             //TO DO: Add additional check based on sender
-                            if (MeRLinkMatch.Success)
+                            if (MerLinkMatch.Success && MerCheckerMatch.Success)
                             {
-                                deliveryLink = MeRLinkMatch.Groups[1].ToString();
+                                deliveryLink = MerLinkMatch.Groups[1].ToString();
                                 GetJson(deliveryLink);
                             }
                         }
@@ -62,7 +67,7 @@ namespace TestCommunicationMeR
                         }
                     }
                     referenceOrdinalNumber = ordinalNumber;
-                } while (date != referenceDate);
+                }
                 imap.Disconnect();
             }
         }
