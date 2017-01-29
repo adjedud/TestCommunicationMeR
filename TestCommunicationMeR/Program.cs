@@ -5,7 +5,6 @@ using System.IO;
 using System.Net;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using AngleSharp.Parser.Html;
 
 namespace TestCommunicationMeR
 {
@@ -15,18 +14,17 @@ namespace TestCommunicationMeR
         {
             using (Imap4Client imap = new Imap4Client())
             {
-                string body;
-                int referenceOrdinalNumber = 96600;
-                string referenceDate = DateTime.Now.ToString("dd-MMM-yyy hh:mm:ss" + " +0100", CultureInfo.CreateSpecificCulture("en-US"));
-                string deliveryLink;
-                var htmlParser = new HtmlParser();
+                string Body;
+                int ReferenceOrdinalNumber = 96600;
+                string ReferenceDate = DateTime.Now.ToString("dd-MMM-yyy hh:mm:ss" + " +0100", CultureInfo.CreateSpecificCulture("en-US"));
+                string DeliveryLink;
 
                 imap.Connect("mail.moj-eracun.hr");
                 imap.Login("dostava@moj-eracun.hr", "m0j.d05tava");
                 Mailbox inbox = imap.SelectMailbox("Inbox");
 
-                int ordinalNumber = inbox.MessageCount;
-                string date = inbox.Fetch.InternalDate(ordinalNumber);
+                int OrdinalNumber = inbox.MessageCount;
+                string Date = inbox.Fetch.InternalDate(OrdinalNumber);
                 string MerPattern1 = ".*?";
                 string MerPattern2 = "((?:http|https)(?::\\/{2}[\\w]+)(?:[\\/|\\.]?)(?:[^\\s\"]*))";
                 Regex MerLink = new Regex(MerPattern1 + MerPattern2, RegexOptions.IgnoreCase | RegexOptions.Singleline);
@@ -39,24 +37,22 @@ namespace TestCommunicationMeR
                 string MerCheck6 = "(dostava@moj-eracun\\.hr)";
                 Regex MerChecker = new Regex(MerCheck1 + MerCheck2 + MerCheck3 + MerCheck4 + MerCheck5 + MerCheck6, RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-
-                while (date != referenceDate)
+                while (Date != ReferenceDate)
                 {
-                    ordinalNumber = inbox.MessageCount;
-                    date = inbox.Fetch.InternalDate(ordinalNumber);
+                    OrdinalNumber = inbox.MessageCount;
+                    Date = inbox.Fetch.InternalDate(OrdinalNumber);
 
-                    for (ordinalNumber = inbox.MessageCount; date != referenceDate && ordinalNumber > referenceOrdinalNumber; ordinalNumber--)
+                    for (OrdinalNumber = inbox.MessageCount; Date != ReferenceDate && OrdinalNumber > ReferenceOrdinalNumber; OrdinalNumber--)
                     {
-                        body = inbox.Fetch.MessageString(ordinalNumber);
+                        Body = inbox.Fetch.MessageString(OrdinalNumber);
                         try
                         {
-                            Match MerLinkMatch = MerLink.Match(body);
-                            Match MerCheckerMatch = MerChecker.Match(body);
-                            //TO DO: Add additional check based on sender
+                            Match MerLinkMatch = MerLink.Match(Body);
+                            Match MerCheckerMatch = MerChecker.Match(Body);
                             if (MerLinkMatch.Success && MerCheckerMatch.Success)
                             {
-                                deliveryLink = MerLinkMatch.Groups[1].ToString();
-                                GetJson(deliveryLink);
+                                DeliveryLink = MerLinkMatch.Groups[1].ToString();
+                                ParseJson(DeliveryLink);
                             }
                         }
                         //TO DO: Add Exceptions
@@ -66,17 +62,15 @@ namespace TestCommunicationMeR
                             throw;
                         }
                     }
-                    referenceOrdinalNumber = ordinalNumber;
+                    ReferenceOrdinalNumber = OrdinalNumber;
                 }
                 imap.Disconnect();
             }
         }
 
-        static void GetJson(string url)
+        static void ParseJson(string url)
         {
             // TO DO: Make try-catch for the entire method
-            //string url = "https://www.moj-eracun.hr/exchange/getstatus?id=1041189&ver=cb590fe1-3138-4287-b8fc-058a56065152";
-
             using (var MeR = new WebClient())
             {
                 var json = MeR.DownloadString(url);
@@ -90,7 +84,9 @@ namespace TestCommunicationMeR
                 }
                 int DocumentId = Result.Id;
                 int DocumentStatus = Result.Status;
-                Console.WriteLine(DocumentStatus);
+                string BuyerId = Result.BuyerID;
+                string SupplierId = Result.SupplierID;
+                Console.WriteLine(DocumentStatus + " " + DocumentId + " " + BuyerId + " " + SupplierId);
                 Console.ReadLine();
             }
         }
@@ -98,6 +94,7 @@ namespace TestCommunicationMeR
         public class JsonResponse
         {
             [JsonProperty]
+            public string BuyerID { get; set; }
             public int Id { get; set; }
             public string InterniBroj { get; set; }
             public string SupplierName { get; set; }
